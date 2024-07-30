@@ -1,0 +1,94 @@
+//task#02
+#include <iostream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+class Contact {
+public:
+    string name;
+    string phone;
+
+    Contact(string n, string p) : name(n), phone(p) {}
+};
+
+class ContactManager {
+private:
+    vector<Contact> contacts;
+
+public:
+    void addContact(string name, string phone) {
+        Contact newContact(name, phone);
+        contacts.push_back(newContact);
+        cout << "Contact added successfully.\n";
+    }
+
+    void viewContacts() {
+        if (contacts.empty()) {
+            cout << "No contacts to display.\n";
+            return;
+        }
+
+        for (size_t i = 0; i < contacts.size(); ++i) {
+            cout << i + 1 << ". Name: " << contacts[i].name << ", Phone: " << contacts[i].phone << endl;
+        }
+    }
+
+    void deleteContact(int index) {
+        if (index < 1 || index > contacts.size()) {
+            cout << "Invalid contact index.\n";
+            return;
+        }
+
+        contacts.erase(contacts.begin() + index - 1);
+        cout << "Contact deleted successfully.\n";
+    }
+
+    void showMenu() {
+        int choice;
+        do {
+            cout << "\nContact Management System Menu:\n";
+            cout << "1. Add Contact\n";
+            cout << "2. View Contacts\n";
+            cout << "3. Delete Contact\n";
+            cout << "4. Exit\n";
+            cout << "Enter your choice: ";
+            cin >> choice;
+
+            switch (choice) {
+                case 1: {
+                    string name, phone;
+                    cout << "Enter name: ";
+                    cin.ignore();
+                    getline(cin, name);
+                    cout << "Enter phone: ";
+                    getline(cin, phone);
+                    addContact(name, phone);
+                    break;
+                }
+                case 2:
+                    viewContacts();
+                    break;
+                case 3: {
+                    int index;
+                    cout << "Enter contact index to delete: ";
+                    cin >> index;
+                    deleteContact(index);
+                    break;
+                }
+                case 4:
+                    cout << "Exiting...\n";
+                    break;
+                default:
+                    cout << "Invalid choice. Please try again.\n";
+            }
+        } while (choice != 4);
+    }
+};
+
+int main() {
+    ContactManager C;
+    C.showMenu();
+    return 0;
+}

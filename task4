@@ -1,0 +1,119 @@
+// task04
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <thread>
+#include <vector>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#pragma comment(lib, "Ws2_32.lib")
+
+const int PORT = 8080;
+const std::string BASE_PATH = "./www";
+
+void handle_client(SOCKET client_socket) {
+    char buffer[1024] = {0};
+    recv(client_socket, buffer, 1024, 0);
+
+    std::string request(buffer);
+    std::string::size_type pos = request.find("GET ");
+    if (pos != std::string::npos) {
+        pos += 4;
+        std::string::size_type end_pos = request.find(' ', pos);
+        std::string file_path = BASE_PATH + request.substr(pos, end_pos - pos);
+        if (file_path.back() == '/') {
+            file_path += "index.html";
+        }
+
+        std::ifstream file(file_path, std::ios::binary);
+        if (file) {
+            std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+            send(client_socket, response.c_str(), response.size(), 0);
+            char file_buffer[1024];
+            while (file.read(file_buffer, sizeof(file_buffer)).gcount() > 0) {
+                send(client_socket, file_buffer, file.gcount(), 0);
+            }
+        } else {
+            std::string response = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1></body></html>";
+            send(client_socket, response.c_str(), response.size(), 0);
+        }
+    }
+
+    closesocket(client_socket);
+}
+
+int main() {
+    WSADATA wsaData;
+    SOCKET server_socket, client_socket;
+    struct addrinfo *result = NULL, hints;
+    int iResult;
+
+    // Initialize Winsock
+    iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (iResult != 0) {
+        std::cerr << "WSAStartup failed with error: " << iResult << std::endl;
+        return 1;
+    }
+
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_PASSIVE;
+
+    // Resolve the server address and port
+    iResult = getaddrinfo(NULL, std::to_string(PORT).c_str(), &hints, &result);
+    if (iResult != 0) {
+        std::cerr << "getaddrinfo failed with error: " << iResult << std::endl;
+        WSACleanup();
+        return 1;
+    }
+
+    // Create a SOCKET for the server to listen for client connections
+    server_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (server_socket == INVALID_SOCKET) {
+        std::cerr << "socket failed with error: " << WSAGetLastError() << std::endl;
+        freeaddrinfo(result);
+        WSACleanup();
+        return 1;
+    }
+
+    // Setup the TCP listening socket
+    iResult = bind(server_socket, result->ai_addr, (int)result->ai_addrlen);
+    if (iResult == SOCKET_ERROR) {
+        std::cerr << "bind failed with error: " << WSAGetLastError() << std::endl;
+        freeaddrinfo(result);
+        closesocket(server_socket);
+        WSACleanup();
+        return 1;
+    }
+
+    freeaddrinfo(result);
+
+    if (listen(server_socket, SOMAXCONN) == SOCKET_ERROR) {
+        std::cerr << "listen failed with error: " << WSAGetLastError() << std::endl;
+        closesocket(server_socket);
+        WSACleanup();
+        return 1;
+    }
+
+    std::cout << "Server started on port " << PORT << std::endl;
+
+    // Accept and handle incoming connections
+    while (true) {
+        client_socket = accept(server_socket, NULL, NULL);
+        if (client_socket == INVALID_SOCKET) {
+            std::cerr << "accept failed with error: " << WSAGetLastError() << std::endl;
+            closesocket(server_socket);
+            WSACleanup();
+            return 1;
+        }
+
+        std::thread(handle_client, client_socket).detach();
+    }
+
+    closesocket(server_socket);
+    WSACleanup();
+    return 0;
+}

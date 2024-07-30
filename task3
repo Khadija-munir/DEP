@@ -1,0 +1,118 @@
+//task#03
+#include <iostream>
+#include <fstream>
+#include <string>
+#include<string>
+using namespace std;
+// f is used for word file.
+string readf(const string &fpath)
+
+{
+	ifstream f(fpath, ios::in | ios::binary);
+	if(!f) throw runtime_error("***could not open the file for reading.***");
+	string content((istreambuf_iterator<char> (f)), istreambuf_iterator<char>());
+	return content;
+}
+
+void writef(const string &fpath, const string &data)
+{
+	ofstream f(fpath, ios::out | ios::binary);
+	if(!f) throw runtime_error("***could not open the file for reading.***");
+	f.write(data.c_str(),data.size());
+}
+
+string compressRLE (const string &data)
+{
+	string com;
+	int n=data.size();
+	for (int i=0; i<n; ++i)
+	{
+		int count=1;
+
+		while(i+1<n && data [i]==data[i+1])
+		{
+			++i;
+			++count;
+		}
+		com+=data[i];
+		com+= to_string(count);
+	}
+	return com;
+}
+string decompressRLE( const string &data)
+
+{
+	string decom;
+	int n=data.size();
+	for (int i=0; i<n; ++i)
+	{
+
+		char ch=data[i];
+		string countstr;
+		while(i+1<n && isdigit (data[i+1]))
+		{
+			countstr+=data[+i];
+		}
+
+		int count=stoi(countstr);
+		decom.append(count,ch);
+	}
+
+	return decom;
+}
+int main()
+{
+
+	string inputfilepath, outputfilepath;
+
+	char choice;
+	cout << "Enter the path of the input file: ";
+
+	cin >> inputfilepath;
+	cout << "Choose operation: (c)ompress or (d)ecompress: ";
+
+	cin >> choice;
+	if (choice=='c' || choice == 'C') {
+
+		try {
+
+			string data =readf(inputfilepath);
+			string compressedData = compressRLE(data);
+			outputfilepath =inputfilepath +".rle";
+			writef (outputfilepath, compressedData);
+
+			cout << "File compressed successfully, output file:"<< outputfilepath << endl;
+		}
+
+		catch (const exception &e) {
+
+			cerr << "Error: " << e.what() << endl;
+
+		}
+
+	}
+	else if (choice== 'd' || choice =='D') {
+
+		try {
+
+			string data =readf(inputfilepath);
+			string decompressedData= decompressRLE(data);
+			outputfilepath= inputfilepath+".decompressed";
+			writef (outputfilepath, decompressedData);
+			cout << "File decompressed successfully. outputfile:"<< outputfilepath << endl;
+
+		}
+
+		catch (const exception e)
+		{
+
+			cerr << "ErrP>P3: " << e.what() << endl;
+
+		}
+
+	}
+	else
+	{
+		cerr<<"Invalid"<<endl;
+	}
+	return 0;
